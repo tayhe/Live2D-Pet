@@ -1,0 +1,22 @@
+exapi:
+  host: 127.0.0.1
+  port: 10086
+
+model:
+  index: 0
+
+expressions:
+  happy: 0
+  sad: 1
+  angry: 2
+  surprised: 3
+  neutral: -1
+
+motions:
+  tap: "Tap"
+  idle: "Idle"
+  tap_body: "TapBody"
+
+effects:
+  rain: 100100
+  snow: 100110
