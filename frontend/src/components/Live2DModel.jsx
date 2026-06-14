@@ -7,27 +7,28 @@ window.PIXI = PIXI
 const MODEL_PATH = '/models/PinkFox/PinkFox.model3.json'
 
 // expression_id -> param id (from .exp3.json ParamId) + Chinese name
-// Based on inspection of PinkFox/*.exp3.json files
+// Verified against PinkFox/PinkFox.cdi3.json (authoritative param names)
+// and PinkFox/yousuyiyi`*.exp3.json (file suffix -> param Id mapping)
 const EXPRESSIONS = {
   0: { param: 'key9',  name: '猫猫眼' },
   1: { param: 'key1',  name: '发型1' },
   2: { param: 'key18', name: '发型2' },
-  3: { param: 'key2',  name: '脸红' },
+  3: { param: 'key2',  name: '吐舌' },
   4: { param: 'key3',  name: '黑脸' },
   5: { param: 'key4',  name: '眼泪' },
-  6: { param: 'key5',  name: 'nn眼' },
-  7: { param: 'key6',  name: '生气瘪嘴' },
-  8: { param: 'key7',  name: '死鱼眼' },
-  9: { param: 'key8',  name: '咪咪眼' },
+  6: { param: 'key5',  name: '脸红' },
+  7: { param: 'key6',  name: 'nn眼' },
+  8: { param: 'key7',  name: '生气瘪嘴' },
+  9: { param: 'key8',  name: '死鱼眼' },
   10: { param: 'key13', name: '总督' },
-  11: { param: 'key12', name: '嘟嘴' },
+  11: { param: 'key12', name: '钱钱' },
   12: { param: 'key19', name: '兽耳消失' },
   13: { param: 'key20', name: '尾巴消失' },
-  14: { param: 'key10', name: '嘟嘴' },
+  14: { param: 'key10', name: '--眼' },
   15: { param: 'key14', name: '提督' },
   16: { param: 'key15', name: '舰长' },
   17: { param: 'key17', name: '泪眼' },
-  18: { param: 'key11', name: '钱钱眼' },
+  18: { param: 'key11', name: '嘟嘴' },
   19: { param: 'key16', name: '爱心' },
 }
 
