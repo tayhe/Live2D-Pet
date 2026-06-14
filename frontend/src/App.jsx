@@ -6,6 +6,7 @@ import './App.css'
 
 function App() {
   const live2dRef = useRef(null)
+  const wsRef = useRef(null)
   const [connected, setConnected] = useState(false)
 
   useEffect(() => {
@@ -34,14 +35,19 @@ function App() {
         live2dRef.current?.setMouthOpen(value)
       },
     })
+    wsRef.current = conn
     return () => conn.disconnect()
   }, [])
+
+  function handleTouch(area, pos) {
+    wsRef.current?.send({ type: 'touch', area, x: pos.x, y: pos.y })
+  }
 
   return (
     <div className="app">
       <div className={`ws-status ${connected ? 'on' : 'off'}`} />
       <div className="live2d-main">
-        <Live2DDisplay ref={live2dRef} />
+        <Live2DDisplay ref={live2dRef} onTouch={handleTouch} />
       </div>
       <DialogueBox />
     </div>

@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import time
 from typing import Any
 
 import websockets
@@ -16,6 +17,7 @@ class PushServer:
         self._clients: set[ServerConnection] = set()
         self._server: Server | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
+        self._last_touch: dict[str, Any] | None = None
 
     async def start(self) -> None:
         self._loop = asyncio.get_running_loop()
@@ -40,7 +42,17 @@ class PushServer:
         try:
             async for msg in ws:
                 logger.debug("Frontend message: %s", msg)
-                await self._broadcast_others(ws, msg)
+                data = json.loads(msg)
+                if data.get("type") == "touch":
+                    self._last_touch = {
+                        "area": data.get("area", "body"),
+                        "x": data.get("x", 0),
+                        "y": data.get("y", 0),
+                        "time": time.time(),
+                    }
+                    logger.info("Touch: area=%s", self._last_touch["area"])
+                else:
+                    await self._broadcast_others(ws, msg)
         except websockets.ConnectionClosed:
             pass
         finally:
@@ -127,3 +139,9 @@ class PushServer:
             "type": "set_mouth_open",
             "value": value,
         })
+
+    def pop_touch(self) -> dict[str, Any] | None:
+        """Return and clear the last touch event."""
+        t = self._last_touch
+        self._last_touch = None
+        return t

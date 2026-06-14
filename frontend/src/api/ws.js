@@ -73,5 +73,10 @@ export function createWsConnection(handlers = {}) {
         ws = null
       }
     },
+    send(data) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(data))
+      }
+    },
   }
 }

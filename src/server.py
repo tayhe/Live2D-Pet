@@ -160,6 +160,18 @@ async def set_effect(effect: str) -> str:
     return f"已设置特效：{effect}"
 
 
+@mcp.tool()
+async def check_touch() -> str:
+    """检查用户是否点击/触摸了 Live2D 角色。返回触摸区域（head/face/body）和坐标，无触摸时返回空。
+
+    返回格式：area=x,y 或 "无触摸事件"
+    """
+    touch = push.pop_touch()
+    if not touch:
+        return "无触摸事件"
+    return f"{touch['area']}={touch['x']},{touch['y']}"
+
+
 def main() -> None:
     mcp.run()
 

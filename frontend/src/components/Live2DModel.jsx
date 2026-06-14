@@ -31,7 +31,7 @@ const EXPRESSIONS = {
   19: { param: 'key16', name: '爱心' },
 }
 
-const Live2DDisplay = forwardRef((_, ref) => {
+const Live2DDisplay = forwardRef(({ onTouch }, ref) => {
   const containerRef = useRef(null)
   const appRef = useRef(null)
   const modelRef = useRef(null)
@@ -135,6 +135,25 @@ const Live2DDisplay = forwardRef((_, ref) => {
         model.anchor.set(0.5, 0.35)
 
         app.stage.addChild(model)
+
+        // Click/touch detection
+        app.view.addEventListener('click', (e) => {
+          if (!modelRef.current) return
+          const model = modelRef.current
+          const bounds = model.getBounds()
+
+          const x = e.offsetX, y = e.offsetY
+          if (x < bounds.x || x > bounds.x + bounds.width ||
+              y < bounds.y || y > bounds.y + bounds.height) return
+
+          const relY = (y - bounds.y) / bounds.height
+          let area = 'body'
+          if (relY < 0.25) area = 'head'
+          else if (relY < 0.45) area = 'face'
+
+          model.motion('')
+          onTouch?.(area, { x: e.clientX, y: e.clientY })
+        })
 
         // write mouth + expression params each frame (defeats idle motion reset)
         app.ticker.add(() => {
