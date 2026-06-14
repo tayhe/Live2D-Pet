@@ -46,7 +46,7 @@ npm install
 ### 当前默认配置（PinkFox 模型）
 
 ```yaml
-exapi:
+server:
   host: 127.0.0.1
   port: 10086          # PushServer WebSocket 端口
 
@@ -232,10 +232,12 @@ live2d-ai-companion/
 | tail_off | 13 | key20 | 尾巴消失 |
 | neutral | -1 | — | 清除表情 |
 
+**嘴型**：PinkFox 使用 3 参数复合嘴型 `ParamMouthOpenY` + `Tonguelicking` + `MouthBig2`(×0.6)
+
 ## 后续计划
 
+- [x] Agent 根据情感自动选择表情（通过 MCP instructions + say_and_express 工具）
 - [ ] TTS 语音合成 → 嘴型自动同步（wlipsync）
-- [ ] Agent 根据情感自动选择表情
 - [ ] 点击交互（触摸模型不同区域触发不同反应）
 - [ ] 桌面悬浮窗模式（Electron/Tauri）
 - [ ] 多模型切换
@@ -246,4 +248,4 @@ live2d-ai-companion/
 - [pixi-live2d-display 文档](https://guansss.github.io/pixi-live2d-display/)
 - [Live2D Cubism SDK](https://www.live2d.com/en/sdk/download/native/)
 - [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk)
-- [nana 项目](https://github.com/艾拉)（参考实现）
+- nana 项目（本地参考实现，FastAPI + React 架构）

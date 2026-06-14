@@ -52,23 +52,29 @@ cd frontend && npm run lint
 
 ## PinkFox 表情参数速查（已验证）
 
-| 语义名 | exp_id | 参数 ID | 视觉效果 |
-|--------|--------|---------|----------|
-| happy/shy | 3 | key2 | 红脸 |
-| dark_face | 4 | key3 | 黑脸 |
-| sad | 5 | key4 | 眼泪 |
-| nn_eyes | 6 | key5 | nn眼 |
-| angry | 7 | key6 | 生气瘪嘴 |
-| dead_fish | 8 | key7 | 死鱼眼 |
-| squint | 9 | key8 | 咪咪眼 |
-| cat_eyes/surprised | 0 | key9 | 猫猫眼 |
-| pout | 11 | key12 | 嘟嘴 |
-| love | 19 | key16 | 爱心 |
-| teary | 17 | key17 | 泪眼 |
-| money_eyes | 18 | key11 | 钱钱眼 |
-| ears_off | 12 | key19 | 兽耳消失 |
-| tail_off | 13 | key20 | 尾巴消失 |
-| neutral | -1 | — | 清除表情 |
+| exp_id | 参数 ID | 视觉效果 | 语义名 |
+|--------|---------|----------|--------|
+| 0 | key9 | 猫猫眼 | surprised, cat_eyes |
+| 1 | key1 | 发型1 | — |
+| 2 | key18 | 发型2 | — |
+| 3 | key2 | 红脸 | happy, shy |
+| 4 | key3 | 黑脸 | dark_face |
+| 5 | key4 | 眼泪 | sad |
+| 6 | key5 | nn眼 | nn_eyes |
+| 7 | key6 | 生气瘪嘴 | angry |
+| 8 | key7 | 死鱼眼 | dead_fish |
+| 9 | key8 | 咪咪眼 | squint |
+| 10 | key13 | 总督 | — |
+| 11 | key12 | 嘟嘴 | pout |
+| 12 | key19 | 兽耳消失 | ears_off |
+| 13 | key20 | 尾巴消失 | tail_off |
+| 14 | key10 | 嘟嘴 | — |
+| 15 | key14 | 提督 | — |
+| 16 | key15 | 舰长 | — |
+| 17 | key17 | 泪眼 | teary |
+| 18 | key11 | 钱钱眼 | money_eyes |
+| 19 | key16 | 爱心 | love |
+| -1 | — | 清除表情 | neutral |
 
 **嘴型**：3 参数复合 `ParamMouthOpenY` + `Tonguelicking` + `MouthBig2`(×0.6)
 
@@ -84,7 +90,7 @@ cd frontend && npm run lint
 | `trigger_motion` | motion, model | 播放动作 |
 | `set_position` | x, y, model | 设置位置 |
 | `set_effect` | effect_id | 设置特效 |
-| `set_mouth_open` | value | 控制嘴型（0=闭，1=张开） |
+| `set_mouth_open` | value | 控制嘴型（float 0.0=闭，1.0=张开） |
 
 ## 调试新模型
 

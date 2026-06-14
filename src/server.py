@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 config = load_config(Path(__file__).parent.parent / "config.yaml")
-push = PushServer(config.exapi.host, config.exapi.port)
+push = PushServer(config.server.host, config.server.port)
 
 
 def _start_push_in_thread() -> None:

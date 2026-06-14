@@ -1,7 +1,7 @@
 [project]
 name = "live2d-ai-companion"
 version = "0.1.0"
-description = "MCP Server for controlling Live2DViewerEX via AI Agent"
+description = "MCP Server + React frontend for AI Agent Live2D companion"
 requires-python = ">=3.10"
 dependencies = [
     "mcp>=1.0.0",

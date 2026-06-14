@@ -5,13 +5,9 @@ import yaml
 
 
 @dataclass
-class ExAPIConfig:
+class ServerConfig:
     host: str = "127.0.0.1"
     port: int = 10086
-
-    @property
-    def url(self) -> str:
-        return f"ws://{self.host}:{self.port}/api"
 
 
 @dataclass
@@ -21,7 +17,7 @@ class ModelConfig:
 
 @dataclass
 class AppConfig:
-    exapi: ExAPIConfig = field(default_factory=ExAPIConfig)
+    server: ServerConfig = field(default_factory=ServerConfig)
     model: ModelConfig = field(default_factory=ModelConfig)
     expressions: dict[str, int] = field(default_factory=dict)
     motions: dict[str, str] = field(default_factory=dict)
@@ -37,7 +33,7 @@ def load_config(path: str | Path = "config.yaml") -> AppConfig:
         data = yaml.safe_load(f) or {}
 
     return AppConfig(
-        exapi=ExAPIConfig(**data.get("exapi", {})),
+        server=ServerConfig(**data.get("server", {})),
         model=ModelConfig(**data.get("model", {})),
         expressions=data.get("expressions", {}),
         motions=data.get("motions", {}),
