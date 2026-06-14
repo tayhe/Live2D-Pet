@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import random
 import threading
 from pathlib import Path
 
@@ -13,6 +14,30 @@ logger = logging.getLogger(__name__)
 
 config = load_config(Path(__file__).parent.parent / "config.yaml")
 push = PushServer(config.server.host, config.server.port)
+
+
+async def _handle_touch(area: str) -> None:
+    """自动触摸反应：收到触摸事件时触发文字+表情+动作"""
+    reaction = config.touch_reactions.get(area)
+    if not reaction:
+        return
+
+    text = random.choice(reaction.text) if reaction.text else None
+    exp_id = config.expressions.get(reaction.expression)
+    motion = config.motions.get(reaction.motion)
+
+    if text:
+        await push.display_text(config.model.index, text, 3000)
+    if exp_id is not None and exp_id != -1:
+        await push.set_expression(config.model.index, exp_id)
+    if motion:
+        await push.trigger_motion(config.model.index, motion)
+
+    logger.info("Touch reaction: area=%s text=%s expr=%s motion=%s",
+                area, text, reaction.expression, reaction.motion)
+
+
+push.set_touch_handler(_handle_touch)
 
 
 def _start_push_in_thread() -> None:
@@ -46,8 +71,8 @@ mcp = FastMCP(
         "  teary — 感动、委屈\n"
         "  cat_eyes — 惊讶、好奇\n"
         "  neutral — 清除表情，恢复默认\n\n"
-        "使用 say 工具时，可以在回复前后搭配 set_expression 表达情绪。\n"
-        "也可以用 play_motion 触发动作（idle, tap_body）。\n\n"
+        "用户触摸角色时（摸头/摸脸/戳身体），服务器会自动触发反应。\n"
+        "你也可以用 check_touch() 检查触摸事件并做出更个性化的回应。\n\n"
         "推荐使用 say_and_express 工具，它会同时显示文字和切换表情，一次调用完成两件事。"
     ),
 )
@@ -164,6 +189,7 @@ async def set_effect(effect: str) -> str:
 async def check_touch() -> str:
     """检查用户是否点击/触摸了 Live2D 角色。返回触摸区域（head/face/body）和坐标，无触摸时返回空。
 
+    注意：触摸事件会自动触发反应（文字+表情+动作），此工具用于读取触摸事件做更个性化的回应。
     返回格式：area=x,y 或 "无触摸事件"
     """
     touch = push.pop_touch()

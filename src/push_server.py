@@ -1,8 +1,9 @@
 import asyncio
 import json
 import logging
+import random
 import time
-from typing import Any
+from typing import Any, Callable, Awaitable
 
 import websockets
 from websockets.asyncio.server import Server, ServerConnection
@@ -18,6 +19,11 @@ class PushServer:
         self._server: Server | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
         self._last_touch: dict[str, Any] | None = None
+        self._touch_handler: Callable[[str], Awaitable[None]] | None = None
+
+    def set_touch_handler(self, handler: Callable[[str], Awaitable[None]]) -> None:
+        """Set callback for touch events: handler(area) -> None"""
+        self._touch_handler = handler
 
     async def start(self) -> None:
         self._loop = asyncio.get_running_loop()
@@ -44,13 +50,19 @@ class PushServer:
                 logger.debug("Frontend message: %s", msg)
                 data = json.loads(msg)
                 if data.get("type") == "touch":
+                    area = data.get("area", "body")
                     self._last_touch = {
-                        "area": data.get("area", "body"),
+                        "area": area,
                         "x": data.get("x", 0),
                         "y": data.get("y", 0),
                         "time": time.time(),
                     }
-                    logger.info("Touch: area=%s", self._last_touch["area"])
+                    logger.info("Touch: area=%s", area)
+                    if self._touch_handler:
+                        try:
+                            await self._touch_handler(area)
+                        except Exception as e:
+                            logger.error("Touch handler error: %s", e)
                 else:
                     await self._broadcast_others(ws, msg)
         except websockets.ConnectionClosed:

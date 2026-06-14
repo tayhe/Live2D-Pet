@@ -37,3 +37,29 @@ motions:
 effects:
   rain: 100100
   snow: 100110
+
+# 触摸反应配置
+# 每个区域可配置：text（文字气泡）、expression（表情）、motion（动作）
+# text 支持多条随机选择（数组）
+touch_reactions:
+  head:
+    text:
+      - "别摸我头啦！"
+      - "呜...头发会乱的..."
+      - "才、才不是觉得很舒服呢..."
+    expression: "pout"
+    motion: "TapBody"
+  face:
+    text:
+      - "别戳我脸！"
+      - "呜呜..."
+      - "你、你在干什么啦！"
+    expression: "shy"
+    motion: "TapBody"
+  body:
+    text:
+      - "别碰那里！"
+      - "呀！"
+      - "变态！"
+    expression: "angry"
+    motion: "TapBody"
