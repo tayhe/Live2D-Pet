@@ -102,7 +102,9 @@ async def say_and_express(text: str, expression: str = "happy", duration: int = 
     await push.display_text(config.model.index, text, duration)
     result = f"已显示文字：{text}"
 
-    if expression in config.expressions:
+    if expression not in config.expressions:
+        result += f"，未知表情 '{expression}'"
+    else:
         exp_id = config.expressions[expression]
         if exp_id == -1:
             await push.clear_expression(config.model.index)

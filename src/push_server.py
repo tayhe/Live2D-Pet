@@ -15,8 +15,10 @@ class PushServer:
         self._port = port
         self._clients: set[ServerConnection] = set()
         self._server: Server | None = None
+        self._loop: asyncio.AbstractEventLoop | None = None
 
     async def start(self) -> None:
+        self._loop = asyncio.get_running_loop()
         self._server = await websockets.serve(
             self._handler,
             self._host,
@@ -57,8 +59,24 @@ class PushServer:
             return
         raw = json.dumps(payload, ensure_ascii=False)
         logger.debug("Broadcast: %s", raw)
-        coros = [ws.send(raw) for ws in list(self._clients)]
-        await asyncio.gather(*coros, return_exceptions=True)
+        clients = list(self._clients)
+        loop = self._loop
+        if loop is None:
+            logger.warning("PushServer loop not set, cannot broadcast")
+            return
+        current_loop = asyncio.get_running_loop()
+        if current_loop is loop:
+            coros = [ws.send(raw) for ws in clients]
+            await asyncio.gather(*coros, return_exceptions=True)
+        else:
+            # Cross-loop: schedule in the PushServer's loop
+            coros = [ws.send(raw) for ws in clients]
+            futures = [asyncio.run_coroutine_threadsafe(c, loop) for c in coros]
+            for f in futures:
+                try:
+                    f.result(timeout=5)
+                except Exception:
+                    pass
 
     # ── high-level API ──
 

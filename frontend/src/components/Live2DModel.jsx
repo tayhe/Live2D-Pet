@@ -148,20 +148,6 @@ const Live2DDisplay = forwardRef((_, ref) => {
             c.setParameterValueById(activeExprParamRef.current, 1)
           }
         })
-
-        // Force load all expressions explicitly (they aren't auto-registered)
-        const expressionFiles = Object.keys(EXPRESSIONS).map(k => EXPRESSIONS[k].param)
-        // Use a synthetic exp list mapping param name to file
-        const expList = [
-          { name: '红脸',   url: '/models/PinkFox/yousuyiyi`3.exp3.json', paramId: 'key2' },
-          { name: '爱心',   url: '/models/PinkFox/yousuyiyi`y.exp3.json', paramId: 'key16' },
-          { name: '吐舌',   url: '/models/PinkFox/yousuyiyi`0.exp3.json', paramId: 'key9' },
-        ]
-        // Just keep param list as the available expressions
-        model._availableExpressions = Object.fromEntries(
-          Object.entries(EXPRESSIONS).map(([id, e]) => [parseInt(id), e.param])
-        )
-        console.log('[Live2D] Available expressions:', model._availableExpressions)
       } catch (err) {
         console.error('[Live2D] Failed to load model:', err)
       }
