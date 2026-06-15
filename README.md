@@ -47,38 +47,53 @@ npm install
 
 ```yaml
 server:
-  host: 127.0.0.1
+  host: 0.0.0.0        # 监听所有接口（WSL/远程访问需要）
   port: 10086          # PushServer WebSocket 端口
 
 model:
   index: 0             # 模型槽位，0-based
 
 expressions:           # 语义名称 → exp_id（对应 frontend Live2DModel.jsx 的 EXPRESSIONS 字典）
-  happy: 3             # 红脸
-  sad: 5               # 眼泪
-  angry: 7             # 生气瘪嘴
-  surprised: 0         # 猫猫眼
-  love: 19             # 爱心
-  shy: 3               # 红脸（同 happy）
-  pout: 11             # 嘟嘴
-  squint: 9            # 咪咪眼
-  dead_fish: 8         # 死鱼眼
-  nn_eyes: 6           # nn眼
-  dark_face: 4         # 黑脸
-  money_eyes: 18       # 钱钱眼
-  teary: 17            # 泪眼
-  cat_eyes: 0          # 猫猫眼
+  happy: 6             # 脸红 — 开心、害羞
+  sad: 5               # 眼泪 — 伤心
+  angry: 8             # 生气瘪嘴 — 生气
+  surprised: 0         # 猫猫眼 — 惊讶
+  love: 19             # 爱心 — 喜欢、感动
+  shy: 6               # 脸红 — 害羞（同 happy）
+  pout: 18             # 嘟嘴 — 委屈、撒娇
+  squint: 9            # 死鱼眼 — 得意
+  dead_fish: 9         # 死鱼眼 — 无语
+  nn_eyes: 7           # nn眼 — 呆萌
+  dark_face: 4         # 黑脸 — 尴尬
+  money_eyes: 11       # 钱钱 — 期待
+  teary: 17            # 泪眼 — 感动
+  cat_eyes: 0          # 猫猫眼 — 惊讶（同 surprised）
   ears_off: 12         # 兽耳消失
   tail_off: 13         # 尾巴消失
   neutral: -1          # 清除表情
 
 motions:               # 语义名称 → motion group 名称
-  idle: ""
-  tap_body: ""
+  idle: "Idle"
+  tap_body: "TapBody"
 
 effects:
   rain: 100100
   snow: 100110
+
+# 触摸反应配置
+touch_reactions:
+  head:
+    text: ["别摸我头啦！", "呜...头发会乱的..."]
+    expression: "pout"
+    motion: "TapBody"
+  face:
+    text: ["别戳我脸！", "你、你在干什么啦！"]
+    expression: "shy"
+    motion: "TapBody"
+  body:
+    text: ["别碰那里！", "呀！"]
+    expression: "angry"
+    motion: "TapBody"
 ```
 
 ### 换模型
@@ -115,15 +130,15 @@ npm run dev
 {
   "mcpServers": {
     "live2d": {
-      "command": "F:\\Syncthing\\cloud\\Projects\\Live2D\\.venv\\Scripts\\python.exe",
+      "command": ".venv/bin/python",
       "args": ["-m", "src.server"],
-      "cwd": "F:\\Syncthing\\cloud\\Projects\\Live2D"
+      "cwd": "/path/to/live2d-ai-companion"
     }
   }
 }
 ```
 
-> 注意：`command` 要使用 `.venv\Scripts\python.exe` 的绝对路径，否则可能使用错误的 Python 环境。
+> Windows 用户将 `command` 改为 `.venv\Scripts\python.exe` 的绝对路径。
 
 ### 4. 调用工具
 
@@ -178,6 +193,8 @@ live2d-ai-companion/
 │   │       ├── Hiyori/            # 备选模型
 │   │       └── Haru/              # 备选模型
 │   └── package.json
+├── scripts/
+│   └── debug/               # CDP 调试脚本（已 gitignore）
 ├── config.yaml             # 模型表情/动作映射配置
 ├── pyproject.toml          # Python 项目依赖
 └── README.md
@@ -187,9 +204,10 @@ live2d-ai-companion/
 
 ### PushServer (`src/push_server.py`)
 
-- WebSocket 服务器，监听 `ws://127.0.0.1:10086`
+- WebSocket 服务器，监听 `ws://0.0.0.0:10086`（支持 WSL/远程访问）
 - 接收 MCP 工具调用，广播命令到所有连接的前端
-- 支持客户端间消息转发（用于调试）
+- 支持触摸事件回调（head/face/body 区域自动触发反应）
+- 前端通过 Vite WebSocket 代理连接（开发模式下）
 
 ### 前端渲染 (`frontend/src/components/Live2DModel.jsx`)
 
@@ -212,33 +230,32 @@ live2d-ai-companion/
 {"type": "set_mouth_open", "value": 1.0}
 ```
 
-## PinkFox 表情参数速查
+## PinkFox 表情参数速查（基于 .cdi3.json 权威名称）
 
-| 语义名 | exp_id | 参数 ID | 视觉效果 |
-|--------|--------|---------|----------|
-| happy/shy | 3 | key2 | 红脸 |
-| dark_face | 4 | key3 | 黑脸 |
-| sad | 5 | key4 | 眼泪 |
-| nn_eyes | 6 | key5 | nn眼 |
-| angry | 7 | key6 | 生气瘪嘴 |
-| dead_fish | 8 | key7 | 死鱼眼 |
-| squint | 9 | key8 | 咪咪眼 |
-| cat_eyes/surprised | 0 | key9 | 猫猫眼 |
-| pout | 11 | key12 | 嘟嘴 |
-| love | 19 | key16 | 爱心 |
-| teary | 17 | key17 | 泪眼 |
-| money_eyes | 18 | key11 | 钱钱眼 |
-| ears_off | 12 | key19 | 兽耳消失 |
-| tail_off | 13 | key20 | 尾巴消失 |
-| neutral | -1 | — | 清除表情 |
+| exp_id | 参数 ID | 视觉效果 | 语义名 |
+|--------|---------|----------|--------|
+| 0 | key9 | 猫猫眼 | surprised, cat_eyes |
+| 4 | key3 | 黑脸 | dark_face |
+| 5 | key4 | 眼泪 | sad |
+| 6 | key5 | 脸红 | happy, shy |
+| 7 | key6 | nn眼 | nn_eyes |
+| 8 | key7 | 生气瘪嘴 | angry |
+| 9 | key8 | 死鱼眼 | dead_fish, squint |
+| 11 | key12 | 钱钱 | money_eyes |
+| 17 | key17 | 泪眼 | teary |
+| 18 | key11 | 嘟嘴 | pout |
+| 19 | key16 | 爱心 | love |
+| -1 | — | 清除表情 | neutral |
 
 **嘴型**：PinkFox 使用 3 参数复合嘴型 `ParamMouthOpenY` + `Tonguelicking` + `MouthBig2`(×0.6)
+
+> 完整参数表见 `AGENTS.md`
 
 ## 后续计划
 
 - [x] Agent 根据情感自动选择表情（通过 MCP instructions + say_and_express 工具）
+- [x] 点击交互（触摸模型不同区域触发不同反应）
 - [ ] TTS 语音合成 → 嘴型自动同步（wlipsync）
-- [ ] 点击交互（触摸模型不同区域触发不同反应）
 - [ ] 桌面悬浮窗模式（Electron/Tauri）
 - [ ] 多模型切换
 - [ ] 热更新配置（无需重启）
@@ -248,4 +265,5 @@ live2d-ai-companion/
 - [pixi-live2d-display 文档](https://guansss.github.io/pixi-live2d-display/)
 - [Live2D Cubism SDK](https://www.live2d.com/en/sdk/download/native/)
 - [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk)
+- [Project AIRI](https://github.com/moeru-ai/airi) — 自托管 AI 伴侣项目，支持 Live2D/VRM、实时语音、Minecraft/Factorio 游戏，41k stars，非常值得参考
 - nana 项目（本地参考实现，FastAPI + React 架构）
