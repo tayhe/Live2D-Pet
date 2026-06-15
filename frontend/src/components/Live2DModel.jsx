@@ -51,6 +51,7 @@ const Live2DDisplay = forwardRef(({ onTouch }, ref) => {
         console.warn(`[Live2D] Unknown expression id: ${expId}`)
         return
       }
+      console.log(`[Live2D] Setting expression: ${expId} -> ${expr.param} (${expr.name})`)
       activeExprRef.current = expId
       activeExprParamRef.current = expr.param
       activeExprValueRef.current = 1
@@ -70,16 +71,69 @@ const Live2DDisplay = forwardRef(({ onTouch }, ref) => {
     },
 
     clearExpression() {
+      console.log('[Live2D] Clearing expression')
+      const prevParam = activeExprParamRef.current
       activeExprValueRef.current = 0
-      activeExprRef.current = null
-      activeExprParamRef.current = null
       clearTimeout(resetTimerRef.current)
+      // Keep writing 0 for 1 second to ensure the model resets
+      setTimeout(() => {
+        if (activeExprValueRef.current === 0) {
+          activeExprRef.current = null
+          activeExprParamRef.current = null
+          console.log('[Live2D] Expression refs cleared')
+        }
+      }, 1000)
     },
 
-    triggerMotion(group) {
+    triggerMotion(motion) {
       const model = modelRef.current
-      if (!model) return
-      model.motion(group)
+      if (!model) {
+        console.error('[Live2D] triggerMotion: model is null!')
+        return
+      }
+      const mm = model.internalModel?.motionManager
+      console.log(`[Live2D] === triggerMotion START: "${motion}" ===`)
+      console.log(`[Live2D] model exists:`, !!model)
+      console.log(`[Live2D] motionManager exists:`, !!mm)
+      console.log(`[Live2D] motionManager definitions:`, mm?.definitions ? Object.keys(mm.definitions) : 'none')
+      if (mm?.definitions?.['']) {
+        console.log(`[Live2D] empty group has ${mm.definitions[''].length} motions`)
+      }
+      
+      // Try direct motion manager approach
+      const sep = motion.indexOf(':')
+      if (sep >= 0) {
+        const group = motion.substring(0, sep)
+        const index = parseInt(motion.substring(sep + 1), 10)
+        console.log(`[Live2D] Attempting motion group="${group}" index=${index}`)
+        
+        // Method 1: model.motion
+        try {
+          const r1 = model.motion(group, index)
+          console.log(`[Live2D] model.motion() returned:`, r1)
+        } catch (e) {
+          console.error(`[Live2D] model.motion() error:`, e)
+        }
+        
+        // Method 2: motionManager.startMotion
+        if (mm) {
+          try {
+            const r2 = mm.startMotion(group, index)
+            console.log(`[Live2D] mm.startMotion() returned:`, r2)
+          } catch (e) {
+            console.error(`[Live2D] mm.startMotion() error:`, e)
+          }
+        }
+      } else {
+        console.log(`[Live2D] Attempting motion "${motion}"`)
+        try {
+          const r = model.motion(motion)
+          console.log(`[Live2D] model.motion() returned:`, r)
+        } catch (e) {
+          console.error(`[Live2D] model.motion() error:`, e)
+        }
+      }
+      console.log(`[Live2D] === triggerMotion END ===`)
     },
 
     setPosition(x, y) {
@@ -95,6 +149,7 @@ const Live2DDisplay = forwardRef(({ onTouch }, ref) => {
   }))
 
   useLayoutEffect(() => {
+    console.log('[Live2D] Component mounted, setting up...')
     if (appRef.current) {
       appRef.current.destroy(true)
       appRef.current = null
@@ -126,7 +181,14 @@ const Live2DDisplay = forwardRef(({ onTouch }, ref) => {
         modelRef.current = model
         window.__live2dModel = model
 
+        console.log('[Live2D] Model loaded successfully!')
+        console.log('[Live2D] Model internalModel:', !!model.internalModel)
+        console.log('[Live2D] MotionManager:', !!model.internalModel?.motionManager)
         const mm = model.internalModel.motionManager
+        console.log('[Live2D] Motion definitions:', JSON.stringify(Object.keys(mm.definitions || {})))
+        if (mm.definitions?.['']) {
+          console.log('[Live2D] Empty group motions count:', mm.definitions[''].length)
+        }
         mm.stopAllMotions()
         model.autoInteract = false
         model.draggable = false
@@ -162,6 +224,7 @@ const Live2DDisplay = forwardRef(({ onTouch }, ref) => {
         })
 
         // write mouth + expression params each frame (defeats idle motion reset)
+        let debugFrameCount = 0
         app.ticker.add(() => {
           if (!modelRef.current) return
           const c = modelRef.current.internalModel.coreModel
@@ -170,8 +233,12 @@ const Live2DDisplay = forwardRef(({ onTouch }, ref) => {
           c.setParameterValueById('Tonguelicking', m)
           c.setParameterValueById('MouthBig2', m * 0.6)
           const exprParam = activeExprParamRef.current
+          const exprVal = activeExprValueRef.current
           if (exprParam) {
-            c.setParameterValueById(exprParam, activeExprValueRef.current)
+            c.setParameterValueById(exprParam, exprVal)
+            if (debugFrameCount++ < 60) {
+              console.log(`[Live2D] Ticker: setting ${exprParam}=${exprVal}`)
+            }
           }
         })
       } catch (err) {

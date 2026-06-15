@@ -20,6 +20,9 @@ class PushServer:
         self._loop: asyncio.AbstractEventLoop | None = None
         self._last_touch: dict[str, Any] | None = None
         self._touch_handler: Callable[[str], Awaitable[None]] | None = None
+        self._client_mode = False
+        self._client_ws = None
+        self._client_logs: list[str] = []
 
     def set_touch_handler(self, handler: Callable[[str], Awaitable[None]]) -> None:
         """Set callback for touch events: handler(area) -> None"""
@@ -27,14 +30,30 @@ class PushServer:
 
     async def start(self) -> None:
         self._loop = asyncio.get_running_loop()
-        self._server = await websockets.serve(
-            self._handler,
-            self._host,
-            self._port,
-        )
-        logger.info("PushServer listening on ws://%s:%s", self._host, self._port)
+        try:
+            self._server = await websockets.serve(
+                self._handler,
+                self._host,
+                self._port,
+            )
+            logger.info("PushServer listening on ws://%s:%s", self._host, self._port)
+        except OSError as e:
+            if e.errno == 98:  # Address already in use
+                logger.info("Port %s in use, connecting as client", self._port)
+                self._client_mode = True
+                await self._connect_as_client()
+            else:
+                raise
+
+    async def _connect_as_client(self) -> None:
+        uri = f"ws://{self._host}:{self._port}"
+        self._client_ws = await websockets.connect(uri)
+        logger.info("PushServer connected as client to %s", uri)
 
     async def stop(self) -> None:
+        if self._client_ws:
+            await self._client_ws.close()
+            self._client_ws = None
         if self._server:
             self._server.close()
             await self._server.wait_closed()
@@ -63,6 +82,20 @@ class PushServer:
                             await self._touch_handler(area)
                         except Exception as e:
                             logger.error("Touch handler error: %s", e)
+                elif data.get("type") == "client_log":
+                    level = data.get("level", "log")
+                    message = data.get("message", "")
+                    self._client_logs.append(f"[{level}] {message}")
+                    if len(self._client_logs) > 500:
+                        self._client_logs = self._client_logs[-300:]
+                elif data.get("type") == "get_logs":
+                    logs = self._client_logs[:]
+                    self._client_logs.clear()
+                    await ws.send(json.dumps({"type": "logs_response", "logs": logs[-50:]}))
+                elif data.get("type") == "get_touch":
+                    touch = self._last_touch
+                    self._last_touch = None
+                    await ws.send(json.dumps({"type": "touch_response", "touch": touch}))
                 else:
                     await self._broadcast_others(ws, msg)
         except websockets.ConnectionClosed:
@@ -78,11 +111,22 @@ class PushServer:
         await asyncio.gather(*[ws.send(raw) for ws in others], return_exceptions=True)
 
     async def broadcast(self, payload: dict[str, Any]) -> None:
+        raw = json.dumps(payload, ensure_ascii=False)
+        logger.debug("Broadcast: %s", raw)
+
+        if self._client_mode:
+            if self._client_ws:
+                try:
+                    await self._client_ws.send(raw)
+                except Exception as e:
+                    logger.error("Client send error: %s", e)
+            else:
+                logger.warning("PushServer client not connected")
+            return
+
         if not self._clients:
             logger.debug("No connected frontends, skipping broadcast")
             return
-        raw = json.dumps(payload, ensure_ascii=False)
-        logger.debug("Broadcast: %s", raw)
         clients = list(self._clients)
         loop = self._loop
         if loop is None:
@@ -157,3 +201,22 @@ class PushServer:
         t = self._last_touch
         self._last_touch = None
         return t
+
+    def pop_client_logs(self) -> list[str]:
+        """Return and clear client logs."""
+        logs = self._client_logs[:]
+        self._client_logs.clear()
+        return logs
+
+    async def request_logs(self) -> list[str]:
+        """Request logs from the standalone PushServer (client mode)."""
+        if not self._client_ws:
+            return []
+        try:
+            await self._client_ws.send(json.dumps({"type": "get_logs"}))
+            resp = await asyncio.wait_for(self._client_ws.recv(), timeout=5)
+            data = json.loads(resp)
+            return data.get("logs", [])
+        except Exception as e:
+            logger.error("Failed to request logs: %s", e)
+            return []

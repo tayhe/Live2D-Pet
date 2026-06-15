@@ -146,7 +146,7 @@ async def play_motion(motion: str) -> str:
     """播放 Live2D 角色的动作。
 
     Args:
-        motion: 动作名称，如 idle, wave, nod
+        motion: 动作名称，如 kuku, shake
     """
     if motion not in config.motions:
         available = ", ".join(config.motions.keys())
@@ -196,6 +196,18 @@ async def check_touch() -> str:
     if not touch:
         return "无触摸事件"
     return f"{touch['area']}={touch['x']},{touch['y']}"
+
+
+@mcp.tool()
+async def check_logs() -> str:
+    """读取前端浏览器控制台日志（用于调试）。返回最近的日志条目。"""
+    if push._client_mode:
+        logs = await push.request_logs()
+    else:
+        logs = push.pop_client_logs()
+    if not logs:
+        return "无日志"
+    return "\n".join(logs[-50:])
 
 
 def main() -> None:

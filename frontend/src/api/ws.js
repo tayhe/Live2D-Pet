@@ -1,5 +1,5 @@
 const WS_PORT = 10086
-const WS_URL = `ws://127.0.0.1:${WS_PORT}`
+const WS_URL = `ws://${window.location.hostname}:${WS_PORT}`
 
 export function createWsConnection(handlers = {}) {
   let ws = null
@@ -12,11 +12,16 @@ export function createWsConnection(handlers = {}) {
     ws.onopen = () => {
       console.log("[WS] Connected to push server")
       handlers.onConnect?.()
+      // Send a test log to verify log forwarding works
+      const testMsg = JSON.stringify({ type: 'client_log', level: 'log', message: '[WS] Log forwarding active at ' + new Date().toISOString() })
+      ws.send(testMsg)
+      console.log('[WS] Test log sent')
     }
 
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data)
+        console.log('[WS] Received:', data.type, data)
         handleMessage(data)
       } catch (e) {
         console.warn("[WS] Parse error:", e)
@@ -58,6 +63,9 @@ export function createWsConnection(handlers = {}) {
       case "set_mouth_open":
         handlers.onSetMouthOpen?.(data.value)
         break
+      case "reload":
+        window.location.reload()
+        break
       default:
         console.warn("[WS] Unknown message type:", data.type)
     }
@@ -76,6 +84,11 @@ export function createWsConnection(handlers = {}) {
     send(data) {
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify(data))
+      }
+    },
+    sendLog(level, ...args) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'client_log', level, message: args.map(String).join(' ') }))
       }
     },
   }

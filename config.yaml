@@ -32,8 +32,8 @@ expressions:
   neutral: -1       # 清除表情
 
 motions:
-  idle: "Idle"
-  tap_body: "TapBody"
+  kuku: ":0"
+  shake: ":1"
 
 effects:
   rain: 100100

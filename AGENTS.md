@@ -39,7 +39,7 @@ cd frontend && npm run lint
 
 ## 文件地图
 
-- `src/server.py` — MCP Server 入口，定义 6 个工具（say / set_expression / say_and_express / play_motion / set_position / set_effect）
+- `src/server.py` — MCP Server 入口，定义 8 个工具（say / set_expression / say_and_express / play_motion / set_position / set_effect / check_touch / check_logs）
 - `src/push_server.py` — WebSocket 服务器，向前端广播命令
 - `src/config.py` — 用 dataclass + yaml.safe_load 加载配置
 - `config.yaml` — 表情/动作/特效的语义名称 → exp_id 映射表
@@ -93,6 +93,10 @@ cd frontend && npm run lint
 | `set_position` | x, y, model | 设置位置 |
 | `set_effect` | effect_id | 设置特效 |
 | `set_mouth_open` | value | 控制嘴型（float 0.0=闭，1.0=张开） |
+| `reload` | — | 前端重新加载页面 |
+| `client_log` | level, message | 前端→服务器：控制台日志转发 |
+| `get_logs` | — | 请求前端日志（响应 `logs_response`） |
+| `get_touch` | — | 请求触摸事件（响应 `touch_response`） |
 
 ## 调试新模型
 
