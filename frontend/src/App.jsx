@@ -2,6 +2,9 @@ import { useRef, useEffect, useState } from 'react'
 import Live2DDisplay from './components/Live2DModel'
 import DialogueBox from './components/DialogueBox'
 import MoodIndicator from './components/MoodIndicator'
+import Particles from './components/Particles'
+import Background from './components/Background'
+import { getTimeOfDay } from './utils/timeOfDay'
 import { createWsConnection } from './api/ws'
 import './App.css'
 
@@ -18,6 +21,7 @@ function App() {
   const [connected, setConnected] = useState(false)
   const [debugLogs, setDebugLogs] = useState([])
   const [currentExpression, setCurrentExpression] = useState(null)
+  const [timeOfDay, setTimeOfDay] = useState(getTimeOfDay)
   const moodTimerRef = useRef(null)
 
   useEffect(() => {
@@ -83,6 +87,8 @@ function App() {
 
   return (
     <div className="app">
+      <Background />
+      <Particles timeOfDay={timeOfDay} />
       <div className={`ws-status ${connected ? 'on' : 'off'}`} />
       <MoodIndicator expression={currentExpression} />
       <div className="live2d-main">
