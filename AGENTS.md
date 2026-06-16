@@ -222,14 +222,39 @@ async def test():
 asyncio.run(test())
 ```
 
-## 扩展点
+## 下一步计划（参考 nana 项目）
 
-- TTS 语音：在 `say` 工具中加 TTS 调用，生成音频后通过 WebSocket 推送到前端播放
-- 口型同步：用 `wlipsync` 库分析音频，实时写入 `ParamMouthOpenY` 等参数
-- 点击交互：前端监听 canvas 点击事件，回调到 agent
-- 桌面悬浮窗：用 Electron/Tauri 包装前端，实现桌面原生窗口
-- 多模型：扩展 `config.yaml` 支持按 model_index 分别配置映射
-- 热更新：监听配置文件变化，重载映射表
+### 视觉效果（简单，纯 CSS + React）
+| 功能 | 说明 | 状态 |
+|------|------|------|
+| ~~MoodIndicator~~ | 左上角心情 emoji + 标签 | ✅ 已完成 |
+| ~~Particles~~ | 浮动粒子（樱花/星光/萤火虫） | ✅ 已完成 |
+| ~~Background~~ | 按时间段切换背景图 | ✅ 已完成 |
+| **MoodOverlay** | 全屏情绪叠层（开心=暖黄、害羞=粉红、伤心=蓝、生气=红），2 秒淡入淡出 | 待做 |
+| **Vignette** | 暗角效果（径向渐变），增加画面层次感 | 待做 |
+| **TouchRipple** | 点击模型时的涟漪扩散特效 | 待做 |
+| **RimLight** | 角色背光，CSS 变量随表情变色 | 待做 |
+
+### 交互功能（中等）
+| 功能 | 说明 | 状态 |
+|------|------|------|
+| **QuickReplies** | 快捷回复按钮，agent 回复时可选预设选项 | 待做 |
+| **DialogueHistory** | 对话历史面板，查看之前的对话 | 待做 |
+| **ConfigPanel** | 设置面板（音量、表情重置时间等） | 待做 |
+
+### 高级功能（复杂）
+| 功能 | 说明 | 状态 |
+|------|------|------|
+| **VoiceInput** | 语音输入，麦克风录音 + STT | 待做 |
+| **useLipSync** | 口型同步（需 TTS 集成） | 待做 |
+| **FaceTracking** | 面部追踪（摄像头驱动 Live2D） | 待做 |
+| **桌面悬浮窗** | Electron/Tauri 包装，桌面原生窗口 | 待做 |
+| **多模型** | 扩展 config.yaml 支持按 model_index 分别配置 | 待做 |
+
+### nana 项目参考路径
+- 组件：`/mnt/f/Syncthing/cloud/Projects/nana/frontend/src/components/`
+- 样式：`/mnt/f/Syncthing/cloud/Projects/nana/frontend/src/App.css`（line 343-553）
+- 时间工具：`/mnt/f/Syncthing/cloud/Projects/nana/frontend/src/utils/timeOfDay.js`
 
 ## 参考
 
