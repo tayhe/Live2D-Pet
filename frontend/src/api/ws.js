@@ -63,6 +63,9 @@ export function createWsConnection(handlers = {}) {
       case "set_mouth_open":
         handlers.onSetMouthOpen?.(data.value)
         break
+      case "quick_replies":
+        handlers.onQuickReplies?.(data.options)
+        break
       case "reload":
         window.location.reload()
         break

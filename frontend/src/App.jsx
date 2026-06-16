@@ -1,9 +1,11 @@
-import { useRef, useEffect, useState } from 'react'
+import { useRef, useEffect, useState, useCallback } from 'react'
 import Live2DDisplay from './components/Live2DModel'
 import DialogueBox from './components/DialogueBox'
 import MoodIndicator from './components/MoodIndicator'
 import MoodOverlay from './components/MoodOverlay'
 import TouchRipple from './components/TouchRipple'
+import QuickReplies from './components/QuickReplies'
+import DialogueHistory from './components/DialogueHistory'
 import Particles from './components/Particles'
 import Background from './components/Background'
 import { getTimeOfDay } from './utils/timeOfDay'
@@ -37,7 +39,14 @@ function App() {
   const [currentExpression, setCurrentExpression] = useState(null)
   const [timeOfDay, setTimeOfDay] = useState(getTimeOfDay)
   const [ripples, setRipples] = useState([])
+  const [quickReplyOptions, setQuickReplyOptions] = useState([])
+  const [history, setHistory] = useState([])
+  const [showHistory, setShowHistory] = useState(false)
   const moodTimerRef = useRef(null)
+
+  const addHistory = useCallback((type, content) => {
+    setHistory(prev => [...prev, { type, content, time: Date.now() }])
+  }, [])
 
   useEffect(() => {
     const conn = createWsConnection({
@@ -45,6 +54,9 @@ function App() {
       onDisconnect() { setConnected(false) },
       onDisplayText(text, duration) {
         window.__showDialogue?.(text, duration)
+        addHistory('assistant', text)
+        // Clear quick replies when new text arrives
+        setQuickReplyOptions([])
       },
       onSetExpression(expId) {
         live2dRef.current?.showExpression(expId)
@@ -72,6 +84,9 @@ function App() {
       onSetMouthOpen(value) {
         live2dRef.current?.setMouthOpen(value)
       },
+      onQuickReplies(options) {
+        setQuickReplyOptions(options)
+      },
     })
     wsRef.current = conn
 
@@ -87,14 +102,24 @@ function App() {
     console.warn = (...args) => { origWarn(...args); addLog('W', args) }
     console.error = (...args) => { origError(...args); addLog('E', args) }
 
+    // Keyboard shortcuts
+    const handleKey = (e) => {
+      if (e.target.tagName === 'INPUT') return
+      if (e.key === 'Escape' || e.key === 'h') {
+        setShowHistory(prev => !prev)
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+
     return () => {
       console.log = origLog
       console.warn = origWarn
       console.error = origError
       clearTimeout(moodTimerRef.current)
+      window.removeEventListener('keydown', handleKey)
       conn.disconnect()
     }
-  }, [])
+  }, [addHistory])
 
   function handleTouch(area, pos) {
     wsRef.current?.send({ type: 'touch', area, x: pos.x, y: pos.y })
@@ -102,6 +127,15 @@ function App() {
     const id = Date.now()
     setRipples(prev => [...prev, { id, x: pos.x, y: pos.y }])
     setTimeout(() => setRipples(prev => prev.filter(r => r.id !== id)), 700)
+  }
+
+  function handleQuickReplySelect(option) {
+    // Send selection back via WebSocket
+    wsRef.current?.send({ type: 'quick_reply_selected', option })
+    // Add to history as user message
+    addHistory('user', option)
+    // Hide quick replies
+    setQuickReplyOptions([])
   }
 
   const rimColor = MOOD_TO_RIM[currentExpression] || 'rgba(47, 164, 231, 0.15)'
@@ -118,7 +152,9 @@ function App() {
         <Live2DDisplay ref={live2dRef} onTouch={handleTouch} />
       </div>
       <DialogueBox />
+      <QuickReplies options={quickReplyOptions} onSelect={handleQuickReplySelect} visible={quickReplyOptions.length > 0} />
       {ripples.map(r => <TouchRipple key={r.id} x={r.x} y={r.y} />)}
+      <DialogueHistory history={history} charName="薇冉" visible={showHistory} onClose={() => setShowHistory(false)} />
       <div style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
         background: 'rgba(0,0,0,0.8)', color: '#0f0', fontSize: 11,
