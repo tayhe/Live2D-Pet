@@ -183,13 +183,13 @@ const Live2DDisplay = forwardRef(({ onTouch }, ref) => {
         }
 
         const scale = Math.min(
-          app.view.width / model.width,
-          app.view.height / model.height
-        ) * 1.4
+          app.view.width / model.width * 1.8,
+          app.view.height / model.height * 1.8
+        )
         model.scale.set(scale)
         model.x = app.view.width / 2
-        model.y = app.view.height * 0.5
-        model.anchor.set(0.5, 0.35)
+        model.y = app.view.height * 0.9
+        model.anchor.set(0.5, 0.5)
 
         app.stage.addChild(model)
 
