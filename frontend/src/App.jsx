@@ -160,7 +160,7 @@ function App() {
       <Particles timeOfDay={timeOfDay} />
       <div className="vignette" />
       <MoodOverlay expression={currentExpression} />
-      <div className={`ws-status ${connected ? 'on' : 'off'}`} />
+      {showDebug && <div className={`ws-status ${connected ? 'on' : 'off'}`} />}
       <MoodIndicator expression={currentExpression} />
       <div className="live2d-main">
         <Live2DDisplay ref={live2dRef} onTouch={handleTouch} />
