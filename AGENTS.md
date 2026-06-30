@@ -6,7 +6,7 @@
 
 ## 关键事实（容易踩坑）
 
-- **Python 环境**：项目用 `uv` 创建的 `.venv`，**不要**用系统 Python 或 `hermes-agent` 的 venv。命令用 `.venv\Scripts\python.exe` 绝对路径。
+- **Python 环境**：项目用 `uv` 创建的 `.venv`，**不要**用系统 Python 或 `hermes-agent` 的 venv。命令用 `.venv/bin/python` 绝对路径。
 - **PushServer 端口**：默认 10086。`config.yaml` 中的 `port` 要保持一致。前端硬编码 `ws://localhost:10086`。
 - **MCP 事件循环**：`mcp.run()` 管理自己的事件循环。PushServer 必须在模块加载时通过 daemon thread 立即启动，不能懒加载。
 - **表情/动作是模型相关的**：`config.yaml` 中的 `expressions` 和 `motions` 映射是当前模型的。**换模型必须改配置和前端 EXPRESSIONS 字典**。
@@ -14,7 +14,7 @@
 - **PinkFox 嘴型是 3 参数复合**：`ParamMouthOpenY` + `Tonguelicking` + `MouthBig2`(×0.6)，单独设一个不够。
 - **`model.expression()` 在 PinkFox 上无效**：`internalModel.expressionManager` 不存在，不会发起 .exp3.json 请求。必须用 `setParameterValueById`。
 - **EyeBlink 必须配置**：model3.json 的 `Groups` 中 `EyeBlink.Ids` 不能为 `[]`。必须指定参数 ID（如 `["ParamEyeLOpen", "ParamEyeROpen"]`），否则 `im.eyeBlink` 为 undefined，眼睛不会眨。
-- **Vite 在 WSL2 `/mnt/` 文件系统上 HMR 不工作**：文件变化不会被 Vite 检测到。修改代码后必须手动重启 Vite（`kill` + `setsid npx vite`）。
+- **Vite HMR 可能不工作**：某些环境下文件变化不会被 Vite 检测到。修改代码后可能需要手动重启 Vite（`kill` + `setsid npx vite`）。
 
 ## Live2D 渲染管线（正确做法）
 
@@ -89,7 +89,7 @@ paramIntervalRef.current = setInterval(() => {
 
 ### 参考实现
 
-[nana 项目](https://github.com/mewamew/nana) 的 Live2D 渲染：`/mnt/f/Syncthing/cloud/Projects/nana/frontend/src/components/Live2DModel.jsx`（line 213-230）。使用 `app.ticker.add()` 只写参数，不手动调用 `im.update()`。我们的项目因为后台标签页 rAF 节流，必须用 setInterval + `im.update()` + `model.autoUpdate = false`。
+[nana 项目](https://github.com/mewamew/nana) 的 Live2D 渲染参考。使用 `app.ticker.add()` 只写参数，不手动调用 `im.update()`。我们的项目因为后台标签页 rAF 节流，必须用 setInterval + `im.update()` + `model.autoUpdate = false`。
 
 ### 动作触发（只调一次）
 
@@ -109,6 +109,23 @@ triggerMotion(motion) {
 }
 ```
 
+## 服务启动架构
+
+项目由三个组件构成，启动时机各不相同：
+
+| 组件 | 谁启动 | 时机 |
+|------|--------|------|
+| **MCP Server** | agent 框架自动 | 调用工具时自动 spawn，通过 stdin/stdout 通信（stdio 模式） |
+| **PushServer** | MCP Server 内部 | MCP 进程启动时通过 daemon thread 自动拉起（ws://0.0.0.0:10086） |
+| **前端 Vite** | **手动启动** | 需要提前运行，浏览器打开后自动连接 PushServer |
+
+启动链路：
+```
+agent 框架调用 MCP 工具 → 自动启动 MCP Server → daemon thread 拉起 PushServer → 浏览器连接 PushServer
+```
+
+因此：MCP Server 不需要手动启动（agent 框架管理），但前端需要预先运行。
+
 ## 开发命令
 
 ```bash
@@ -116,7 +133,7 @@ triggerMotion(motion) {
 uv venv && uv pip install -e .
 
 # 后端：启动 MCP Server（同时启动 PushServer）
-.venv\Scripts\python.exe -m src.server
+.venv/bin/python -m src.server
 
 # 前端：安装依赖（首次）
 cd frontend && npm install
@@ -129,6 +146,62 @@ cd frontend && npm run build
 
 # 前端：lint
 cd frontend && npm run lint
+```
+
+## 前端部署（systemd 用户服务）
+
+长期运行前端推荐使用 systemd 用户服务，开机自启、崩溃自动重启。
+
+### 1. 创建 service 文件
+
+```bash
+mkdir -p ~/.config/systemd/user
+cat > ~/.config/systemd/user/live2d-frontend.service << 'EOF'
+[Unit]
+Description=Live2D AI Companion Frontend (Vite)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/Ai-Companion/live2d-ai-companion/frontend
+ExecStart=%h/.nvm/versions/node/v26.3.0/bin/node node_modules/vite/bin/vite.js --host
+Restart=on-failure
+RestartSec=5
+Environment=NODE_ENV=development
+
+[Install]
+WantedBy=default.target
+EOF
+```
+
+### 2. 启用并启动
+
+```bash
+systemctl --user daemon-reload
+systemctl --user enable live2d-frontend.service
+systemctl --user start live2d-frontend.service
+```
+
+### 3. 常用命令
+
+```bash
+# 查看状态
+systemctl --user status live2d-frontend.service
+
+# 查看日志
+journalctl --user -u live2d-frontend.service -f
+
+# 重启（代码变更后）
+systemctl --user restart live2d-frontend.service
+
+# 停止
+systemctl --user stop live2d-frontend.service
+```
+
+### 4. 允许用户服务在 SSH 断开后继续运行
+
+```bash
+loginctl enable-linger tayhe
 ```
 
 ## 文件地图
@@ -251,10 +324,11 @@ asyncio.run(test())
 | **桌面悬浮窗** | Electron/Tauri 包装，桌面原生窗口 | 待做 |
 | **多模型** | 扩展 config.yaml 支持按 model_index 分别配置 | 待做 |
 
-### nana 项目参考路径
-- 组件：`/mnt/f/Syncthing/cloud/Projects/nana/frontend/src/components/`
-- 样式：`/mnt/f/Syncthing/cloud/Projects/nana/frontend/src/App.css`（line 343-553）
-- 时间工具：`/mnt/f/Syncthing/cloud/Projects/nana/frontend/src/utils/timeOfDay.js`
+### nana 项目参考
+- GitHub: https://github.com/mewamew/nana
+- 组件：`frontend/src/components/`
+- 样式：`frontend/src/App.css`（line 343-553）
+- 时间工具：`frontend/src/utils/timeOfDay.js`
 
 ## 主任务完成状态（2026-06-17）
 
